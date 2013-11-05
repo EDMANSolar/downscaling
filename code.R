@@ -1,18 +1,17 @@
 ## Packages
-## #+LABEL: sec:packages
-## The downscaling described in this paper has been implemented using
-## the free software environment R \citep{RDevelopmentCoreTeam2012}
-## and several contributed packages: 
 
-## - =raster= \citep{Hijmans.Etten2012} for spatial data manipulation
-##   and analysis.
-## - =solaR= \citep{Perpinan2012} for the solar
-##   geometry.
-## - =gstat= \citep{Pebesma2004} and =sp=
-##   \citep{Pebesma.Bivand2005} for the geostatistical analysis.
+## The downscaling described in this paper has been implemented using
+## the free software environment R and several contributed packages:
+
+## - =raster= for spatial data manipulation and analysis.
+
+## - =solaR= for the solar geometry.
+
+## - =gstat= and =sp= for the geostatistical analysis.
+
 ## - =parallel= for multi-core parallelization.
-## - =rasterVis= \citep{Perpinan.Hijmans2012} for spatial data
-##   visualization methods.
+
+## - =rasterVis= for spatial data visualization methods.
 
 
 library(sp)
@@ -28,8 +27,8 @@ library(solaR)
 library(parallel)
 
 ## Data
-## #+LABEL: sec:data
-## Satellite data can be freely downloaded from CM SAF[fn:1] choosing hourly
+
+## Satellite data can be freely downloaded from CM SAF choosing hourly
 ## climate data sets named /SIS/ (Global Horizontal Irradiation)) and
 ## /SID/ (Beam Horizontal Irradiation) for 2005. Both rasters are
 ## projected to the UTM projection for compatibility with the Digital
@@ -50,16 +49,15 @@ listFich <- dir(pattern='SIDhm2005')
 stackSID <- stack(listFich)
 stackSID <- projectRaster(stackSID, crs=projUTM)
 
-## The DEM provided in elevG can be crop to the region
-## analyzed (La Rioja). As stated above, this DEM uses the UTM
-## projection.
+## The DEM provided in elevG can be crop to the region analyzed (La
+## Rioja). As stated above, this DEM uses the UTM projection.
 
 elevSpain <- raster('elevSpain.grd')
 elev <- crop(elevSpain, extent(479600, 616200, 4639600, 4728400))
 names(elev)<-'elev'
 
 ## Sun geometry
-## #+LABEL: sec:sun-geometry
+
 ## The first step is to compute the sun angles (height and azimuth)
 ## and the extraterrestial solar irradiation for every cell of the
 ## CMSAF rasters. The functions =fSolD= and =fSolI= from the =solaR=
@@ -116,6 +114,7 @@ names(B05min) <- as.character(BTi)
 B0h <- zApply(B05min, by=hour, fun=mean)
 projectRaster(B0h,crs=projUTM)
 
+
 ############################################################
 ## Sun height
 ############################################################
@@ -131,7 +130,7 @@ AlS <- overlay(latlon, fun=function(lat, lon){
         sol <- calcSol(p[1], BTi=hh)
         ## Calculation of the sun height and rounding with 2
         ## decimal positions to reduce the matrix size.
-        AlS <- round(r2d(as.data.frameI(sol)$AlS, 2)
+        AlS <- round(r2d(as.data.frameI(sol)$AlS, 2))
         AlS})
     res <- do.call(rbind, foo)})
 AlSn <- setZ(AlS, BTi)
@@ -154,17 +153,18 @@ AzS <- overlay(latlon, fun=function(lat, lon){
     ## Calculation of the solar azimuth and rounding with 2 decimal
     ## positions to reduce the matrix size.
     sol <- calcSol(p[1], BTi=hh)
-    AzS <- round(r2d(as.data.frameI(sol)$AzS,2)
+    AzS <- round(r2d(as.data.frameI(sol)$AzS,2))
     AzS})
   res <- do.call(rbind, foo)})
 ## Setting of the temporal index to AzS (15-min)
 AzSn <- setZ(AzS, BTi)
 names(AzSn) <- as.character(BTi)
 
+
 AzSh <- zApply(AzSn, by=hour, fun=mean)
 
 ## Irradiation Components
-## #+LABEL: sec:irradiation
+
 ## The CMSAF rasters must be transformed to the higher resolution of
 ## the DEM (UTM 200mx200m). As a consequence of the different pixel
 ## geometry between DEM (square) and irradiation rasters (rectangle)
@@ -206,7 +206,7 @@ Difiso <-(1-k1) * Difdr
 Difani <- k1 * Difdr
 
 ## Horizon Angle
-## #+LABEL: sec:horizon
+
 ## The maximum horizon angle required for the horizon blocking
 ## analysis and also to derive the SVF is obtained with the next
 ## code.  For each direction angle (value of the =alfa= vector) the
@@ -260,7 +260,7 @@ hor <- mclapply(alfa, function(ang){
 horizon <- stack(hor)
 
 ## Horizon Blocking
-## #+LABEL: sec:block
+
 ## The horizon blocking is analyzed evaluating the solar geometry in
 ## 15 minutes samples, particularly the solar elevation and azimuth
 ## angles throughout the original irradiation raster. Secondly, the
@@ -289,7 +289,7 @@ Dirh <- SIDdr * dilogical
 Difani <- Difani * dilogical
 
 ## Sky View Factor
-## #+LABEL: sec:svf
+
 ## The Sky View Factor can be easily computed from the =horizon= object
 ## with the equation proposed above.  
 
@@ -304,13 +304,11 @@ GHIh <- Difani + Difiso + Dirh
 GHI2005a <- calc(GHIh, fun=sum)
 
 ## Kriging with external drift
-## #+LABEL: sec:ked
+
 ## The downscaled irradiation rasters can be improved using kriging
 ## with external drift. Irradiation data from on-ground
 ## meteorological stations is interpolated with the downscaled
-## irradiation raster as explanatory variable. To define the
-## variogram here we use the results previously published in
-## \cite{Antonanzas-Torres.Canizares.ea2013}.
+## irradiation raster as explanatory variable.
 
 load('Stations.RData')
 UTM <- SpatialPointsDataFrame(Stations[,c(2,3)], Stations[,-c(2,3)],
@@ -328,12 +326,6 @@ names(GHI2005a) <- 'GHIcmsaf'
 G0yKrig <- interpolate(GHI2005a, gModel, xyOnly=FALSE)
 
 ## Brief analysis of the results
-## #+LABEL: sec:results
-## The mean absolute error ($MAE$) is analyzed for the set of
-## stations (Figure~\ref{fig:mapstations}). Table~\ref{tab:MAE} shows
-## the improvement in errors when considering the KED. The
-## downscaling using KED presents lower MAE than with the original CM
-## SAF data.
 
 ## evaluation of downscaling + KED
 G0yKrig_v <- extract(G0yKrig, UTM)
@@ -346,15 +338,6 @@ results <- cbind(SISa2005_v, G0yKrig_v, GHI2005a_v)
 
 MAE <- colMeans(abs(results - UTM$GHImed))
 names(MAE) <- c('MAEcmsaf', 'MAEkrig', 'MAEcmsafdown')
-
-## #+CAPTION: MAE of different scenarios against measured data from on-ground pyranometers ($kWh/m^2$)
-## #+LABEL: tab:MAE
-## | $MAE_{cmsaf}$ | $MAE_{down}$ | $MAE_{KED}$ |
-## |---------------+--------------+-------------|
-## |        101.35 |       175.6 |       75.54 |
-
-## On the other hand, variability due to the downscaling procedure
-## can be considered with the =zonal= function from =raster= package.
 
 ## zonal estatistics sd
 cells <- raster(SISa2005dr)
