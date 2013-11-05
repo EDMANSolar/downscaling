@@ -1,4 +1,3 @@
-
 ## Packages
 ## #+LABEL: sec:packages
 ## The downscaling described in this paper has been implemented using
@@ -352,7 +351,7 @@ names(MAE) <- c('MAEcmsaf', 'MAEkrig', 'MAEcmsafdown')
 ## #+LABEL: tab:MAE
 ## | $MAE_{cmsaf}$ | $MAE_{down}$ | $MAE_{KED}$ |
 ## |---------------+--------------+-------------|
-## |        119.6 |       175.6 |       102.9 |
+## |        101.35 |       175.6 |       75.54 |
 
 ## On the other hand, variability due to the downscaling procedure
 ## can be considered with the =zonal= function from =raster= package.
