@@ -26,10 +26,9 @@ library(rasterVis)
 library(solaR)
 library(parallel)
 
-## Fix de working directory. dir stands for the route of the folder in which the 
-## files required have been saved.
-dir<-dir
-setwd(dir)
+## Change 'MY_FOLDER' with the name of the folder
+## in which the repository has been cloned.
+setwd('MY_FOLDER')
 
 ## Data
 
