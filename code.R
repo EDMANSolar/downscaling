@@ -26,17 +26,25 @@ library(rasterVis)
 library(solaR)
 library(parallel)
 
+## Fix de working directory. dir stands for the route of the folder in which the 
+## files required have been saved.
+dir<-dir
+setwd(dir)
+
 ## Data
 
-## Satellite data can be freely downloaded from CM SAF choosing hourly
+## Satellite data can be freely downloaded from CM SAF (www.cmsaf.eu), 
+## previous registration and log-in, choosing hourly
 ## climate data sets named /SIS/ (Global Horizontal Irradiation)) and
 ## /SID/ (Beam Horizontal Irradiation) for 2005. Both rasters are
 ## projected to the UTM projection for compatibility with the Digital
-## Elevation Model.
+## Elevation Model. Due to the size of these files, they have not been
+## uploaded it into this github repository.
 
 projUTM  <-  CRS('+proj=utm +zone=30')
 projLonLat <- CRS(' +proj=longlat +ellps=WGS84')
 
+## Once downloaded the irradiation files, they are collated into a single RasterStack.
 listFich <- dir(pattern='SIShm2005')
 stackSIS <- stack(listFich)
 stackSIS <- projectRaster(stackSIS,crs=projUTM)
@@ -44,17 +52,26 @@ stackSIS <- projectRaster(stackSIS,crs=projUTM)
 ## Annual GHI
 SISa2005 <- calc(stackSIS,sum,na.rm=TRUE)
 
+## SISa2005 is uploaded in the github repository.
+SISa2005 <- raster('data/SISa2005')
+
 ## BHI
 listFich <- dir(pattern='SIDhm2005')
 stackSID <- stack(listFich)
 stackSID <- projectRaster(stackSID, crs=projUTM)
 
 ## The DEM provided in elevG can be crop to the region analyzed (La
-## Rioja). As stated above, this DEM uses the UTM projection.
+## Rioja). This DEM is obtained from www.ign.es MDT-200 file.
+## As stated above, this DEM uses the UTM projection. Due to the size 
+## of the DEM file (elevSpain) it has not been uploaded into this github 
+## repository and only the "elev" file is uploaded.
 
 elevSpain <- raster('elevSpain.grd')
 elev <- crop(elevSpain, extent(479600, 616200, 4639600, 4728400))
-names(elev)<-'elev'
+
+## elev is loaded from the github repository.
+elev <- raster('data/elev')
+names(elev) <- 'elev'
 
 ## Sun geometry
 
@@ -92,20 +109,20 @@ BTi <- seq(as.POSIXct('2005-01-01 00:00:00'),
            as.POSIXct('2005-12-31 23:55:00'), by='5 min')
 
 B05min <- overlay(latlon, fun=function(lat, lon){
-    ## every point is a column of a data.frame...
-    locs <- as.data.frame(rbind(lat, lon))
-    ## These columns are traversed with lapply so for every point
-    ## of the Raster object a time series of sun geometry is
-    ## computed
-    b <- lapply(locs, function(p){
-        ## Mean solar Time
-        hh <- local2Solar(BTi, p[2])
-        ## Sun geometry
-        sol <- calcSol(p[1], BTi=hh)
-        ## Extraterrestial solar irradiation
-        Bo0 <- as.data.frameI(sol)$Bo0
-        Bo0 })
-    res <- do.call(rbind, b)})
+  ## every point is a column of a data.frame...
+  locs <- as.data.frame(rbind(lat, lon))
+  ## These columns are traversed with lapply so for every point
+  ## of the Raster object a time series of sun geometry is
+  ## computed
+  b <- lapply(locs, function(p){
+    ## Mean solar Time
+    hh <- local2Solar(BTi, p[2])
+    ## Sun geometry
+    sol <- calcSol(p[1], BTi=hh)
+    ## Extraterrestial solar irradiation
+    Bo0 <- as.data.frameI(sol)$Bo0
+    Bo0 })
+  res <- do.call(rbind, b)})
 ## B05min is RasterBrick object with a layer for each element of
 ## the time index BTi. It can be set with setZ
 B05min <- setZ(B05min, BTi)
@@ -123,16 +140,16 @@ BTi <- seq(as.POSIXct('2005-01-01 00:00:00'),
            as.POSIXct('2005-12-31 23:45:00'), by='15 min')
 
 AlS <- overlay(latlon, fun=function(lat, lon){
-    locs <- as.data.frame(rbind(lat, lon))
-    foo <- lapply(locs, function(p){
-        ## Calculation of the local hour with local2Solar.
-        hh <- local2Solar(BTi, p[2])
-        sol <- calcSol(p[1], BTi=hh)
-        ## Calculation of the sun height and rounding with 2
-        ## decimal positions to reduce the matrix size.
-        AlS <- round(r2d(as.data.frameI(sol)$AlS, 2))
-        AlS})
-    res <- do.call(rbind, foo)})
+  locs <- as.data.frame(rbind(lat, lon))
+  foo <- lapply(locs, function(p){
+    ## Calculation of the local hour with local2Solar.
+    hh <- local2Solar(BTi, p[2])
+    sol <- calcSol(p[1], BTi=hh)
+    ## Calculation of the sun height and rounding with 2
+    ## decimal positions to reduce the matrix size.
+    AlS <- round(r2d(as.data.frameI(sol)$AlS, 2))
+    AlS})
+  res <- do.call(rbind, foo)})
 AlSn <- setZ(AlS, BTi)
 names(AlSn) <- as.character(BTi)
 
@@ -234,7 +251,7 @@ seps <- seq(resD, d, by=resD)
 xyelev <- stack(init(elev, v='x'),
                 init(elev, v='y'),
                 elev)
-names(xyelev) <- c('x', 'y','elev')
+names(xyelev) <- c('x', 'y', 'elev')
 
 
 ## Angle of sector sampling 5º.
@@ -245,17 +262,17 @@ alfa <- seq(-0.5*pi,(1.5*pi-inc), inc)
 locs <- as.matrix(xyelev)
 
 hor <- mclapply(alfa, function(ang){
-    h <- apply(locs, 1, function(p){
-        x1 <- p[1]+cos(ang)*seps
-        y1 <- p[2]+sin(ang)*seps
-        p1 <- cbind(x1,y1)
-        z1 <- elevSpain[cellFromXY(elevSpain,p1)]
-        hor <- r2d(atan2(z1-p[3], seps))
-        maxHor <- max(hor[which.max(hor)], 0)
-    })
-    r <- raster(elev)
-    r[] <- matrix(h, nrow=nrow(r), byrow=TRUE)
-    r}, mc.cores=8)
+  h <- apply(locs, 1, function(p){
+    x1 <- p[1]+cos(ang)*seps
+    y1 <- p[2]+sin(ang)*seps
+    p1 <- cbind(x1,y1)
+    z1 <- elevSpain[cellFromXY(elevSpain,p1)]
+    hor <- r2d(atan2(z1-p[3], seps))
+    maxHor <- max(hor[which.max(hor)], 0)
+  })
+  r <- raster(elev)
+  r[] <- matrix(h, nrow=nrow(r), byrow=TRUE)
+  r}, mc.cores=8)
 
 horizon <- stack(hor)
 
@@ -303,6 +320,11 @@ GHIh <- Difani + Difiso + Dirh
 ## Annual sum of hourly global irradiation
 GHI2005a <- calc(GHIh, fun=sum)
 
+## GHI2005a stands for the downscaled irradiation raster without ked. 
+## It has been uploaded into this github repository
+
+GHI2005a <- raster('data/GHI2005a')
+
 ## Kriging with external drift
 
 ## The downscaled irradiation rasters can be improved using kriging
@@ -310,7 +332,7 @@ GHI2005a <- calc(GHIh, fun=sum)
 ## meteorological stations is interpolated with the downscaled
 ## irradiation raster as explanatory variable.
 
-load('Stations.RData')
+load('data/Stations.RData')
 UTM <- SpatialPointsDataFrame(Stations[,c(2,3)], Stations[,-c(2,3)],
                               proj4string=CRS('+proj=utm +zone=30 +ellps=WGS84'))
 
