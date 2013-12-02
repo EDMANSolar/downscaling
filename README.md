@@ -1,8 +1,7 @@
 Downscaling of solar irradiation in R
 ===========
 
-Repository of the working paper by Fernando Antonanzas-Torres, Javier
-Martinez-de-Pison, Javier Antonanzas, Oscar Perpiñán.
+F. Antonanzas-Torres, F.J. Martínez de Pisón, J. Antonanzas, O. Perpiñán, Downscaling of global solar irradiation in R, November 2013, [arXiv:1311.7235](http://arxiv.org/abs/1311.7235).
 
 GNU Licence ![GPL3](http://www.gnu.org/graphics/gplv3-127x51.png)
 ----
