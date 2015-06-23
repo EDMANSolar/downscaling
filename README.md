@@ -2,7 +2,7 @@ Downscaling of solar irradiation in complex areas in R
 ===========
 
 F. Antonanzas-Torres, F.J. Martínez de Pisón, J. Antonanzas, O. Perpiñán, 2014. Downscaling of global solar irradiation in complex areas in R. Journal of Renewable and Sustainable Energy 6, 063105 DOI: 10.1063/1.4901539
-[PDF](http://www.researchgate.net/profile/Fernando_Antonanzas/publication/268073876_Downscaling_of_global_solar_irradiation_in_complex_areas_in_R/links/546094950cf2c1a63bfe0c23.pdf)
+[PDF](http://oscarperpinan.github.io/papers/Antonanzas-Torres.MartinezdePison.ea2014.pdf)
 
 GNU Licence ![GPL3](http://www.gnu.org/graphics/gplv3-127x51.png)
 ----
