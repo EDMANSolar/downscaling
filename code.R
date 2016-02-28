@@ -217,17 +217,6 @@ endCluster()
 ## Scale factor
 sf <- res(stackSID)/res(elev)
 
-## Beam irradiation
-SIDd <- disaggregate(stackSID, sf)
-SIDdr <- resample(SIDd, elev)
-
-## Global irradiation
-SISd <- disaggregate(stackSIS, sf)
-SISdr <- resample(SISd, elev)
-
-## Diffuse irradiation
-Difdr <- SISdr-SIDdr
-
 ## extraterrestrial irradiation and sun angles
 Bo0hd <- disaggregate(Bo0h, sf)
 Bo0hdr <- resample(Bo0hd, elev)
@@ -238,10 +227,19 @@ AzShdr <- resample(AzShdr, elev)
 AlShd <- disaggregate(AlSh, sf)
 AlShdr <- resample(AlShd, elev)
 
-## anisotropy index
-k1 <- SIDdr/Bo0hdr
+## Beam irradiation
+SIDd <- disaggregate(stackSID, sf)
+SIDdr <- resample(SIDd, elev)
 
-Difiso <-(1-k1) * Difdr
+## Global irradiation
+SISd <- disaggregate(stackSIS, sf)
+SISdr <- resample(SISd, elev)
+
+## Diffuse irradiation
+## k1 is the anisotropy index
+k1 <- SIDdr/Bo0hdr
+Difdr <- SISdr - SIDdr
+Difiso <- (1 - k1) * Difdr
 Difani <- k1 * Difdr
 
 ##################################################################
@@ -313,7 +311,7 @@ hor <- mclapply(alfa, function(ang)
     ## must be positive: "apply" computes the maximum value per row. 
     r[] <- apply(hor, 1, max, 0)
     r
-}, mc.cores=8)
+}, mc.cores = detectCores())
 ## The result is a list of RasterLayer, one per each direction angle.
 ## Create a RasterStack with a layer for each angle
 horizon <- stack(hor)
@@ -349,8 +347,9 @@ Dirh <- SIDdr * dilogical
 ## Diffuse anisotrophic irradiation corrected with horizon
 ## blocking
 Difani <- Difani * dilogical
-
+##################################################################
 ## Sky View Factor
+##################################################################
 
 ## The Sky View Factor can be easily computed from the =horizon= object
 ## with the equation proposed above.  
@@ -370,7 +369,9 @@ GHI2005a <- calc(GHIh, fun=sum)
 
 GHI2005a <- raster('data/GHI2005a')
 
+##################################################################
 ## Kriging with external drift
+##################################################################
 
 ## The downscaled irradiation rasters can be improved using kriging
 ## with external drift. Irradiation data from on-ground
@@ -379,10 +380,10 @@ GHI2005a <- raster('data/GHI2005a')
 
 load('data/Stations.RData')
 UTM <- SpatialPointsDataFrame(Stations[,c(2,3)], Stations[,-c(2,3)],
-                              proj4string=CRS('+proj=utm +zone=30 +ellps=WGS84'))
+                              proj4string=projUTM)
 
 
-vgmCMSAF <- variogram(GHImed~GHIcmsaf, UTM)
+vgmCMSAF <- variogram(GHImed ~ GHIcmsaf, UTM)
 fitvgmCMSAF <- fit.variogram(vgmCMSAF, vgm(model='Nug'))
 
 gModel <- gstat(NULL, id='G0yKrig',
@@ -392,7 +393,9 @@ gModel <- gstat(NULL, id='G0yKrig',
 names(GHI2005a) <- 'GHIcmsaf'
 G0yKrig <- interpolate(GHI2005a, gModel, xyOnly=FALSE)
 
+##################################################################
 ## Brief analysis of the results
+##################################################################
 
 ## evaluation of downscaling + KED
 G0yKrig_v <- extract(G0yKrig, UTM)
