@@ -228,9 +228,15 @@ SISdr <- resample(SISd, elev)
 ## Diffuse irradiation
 Difdr <- SISdr-SIDdr
 
-## extraterrestrial irradiation
+## extraterrestrial irradiation and sun angles
 Bo0hd <- disaggregate(Bo0h, sf)
 Bo0hdr <- resample(Bo0hd, elev)
+
+AzShd <- disaggregate(AzSh, sf)
+AzShdr <- resample(AzShdr, elev)
+
+AlShd <- disaggregate(AlSh, sf)
+AlShdr <- resample(AlShd, elev)
 
 ## anisotropy index
 k1 <- SIDdr/Bo0hdr
@@ -313,7 +319,9 @@ hor <- mclapply(alfa, function(ang)
 horizon <- stack(hor)
 writeRaster(horizon, 'horizon')
 
+##################################################################
 ## Horizon Blocking
+##################################################################
 
 ## The horizon blocking is analyzed evaluating the solar geometry in
 ## 15 minutes samples, particularly the solar elevation and azimuth
