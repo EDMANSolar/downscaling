@@ -65,18 +65,12 @@ stackSID <- projectRaster(stackSID, crs=projUTM)
 ## Digital Elevation Model
 ##################################################################
 
-## The DEM provided in elevG can be crop to the region analyzed (La
-## Rioja). This DEM is obtained from www.ign.es MDT-200 file.  As
-## stated above, this DEM uses the UTM projection. Due to the size of
-## the DEM file (elevSpain) it has not been uploaded into this github
-## repository and only the "elev" file is uploaded.
+## The DEM is obtained from www.ign.es MDT-200 files.  This DEM uses
+## the UTM projection. Only the DEM corresponding to La Rioja area is
+## needed:
 
-elevSpain <- raster('elevSpain.grd')
-elev <- crop(elevSpain, extent(479600, 616200, 4639600, 4728400))
-
-## elev is loaded from the github repository.
-elev <- raster('data/elev')
-names(elev) <- 'elev'
+elevRioja <- raster('data/elev')
+names(elevRioja) <- 'elev'
 
 ##################################################################
 ## Sun geometry
@@ -244,29 +238,37 @@ k1 <- SIDdr/Bo0hdr
 Difiso <-(1-k1) * Difdr
 Difani <- k1 * Difdr
 
+##################################################################
 ## Horizon Angle
+##################################################################
 
 ## The maximum horizon angle required for the horizon blocking
-## analysis and also to derive the SVF is obtained with the next
-## code.  For each direction angle (value of the =alfa= vector) the
-## maximum horizon angle is calculated for a set of points across
-## that direction from each of the locations defined in =xyelev=
-## (derived from the DEM raster and transformed in the matrix =locs=
-## visited by rows).  Separations between the origin locations and points
-## along each direction are defined in the vector =seps=. The elevation
+## analysis and also to derive the SVF is obtained with the next code.
+## For each direction angle (value of the =alfa= vector) the maximum
+## horizon angle is calculated for a set of points across that
+## direction from each of the locations defined in =xyelev= (derived
+## from the DEM raster and transformed in the matrix =locs= visited by
+## rows).  Separations between the origin locations and points along
+## each direction are defined in the vector =seps=. The elevation
 ## (=z1=) of these points is converted into the horizon angle: the
 ## largest of these angles is the horizon angle for that
-## direction. The result of each =apply= step is a matrix which is used to
-## fill in a RasterLayer (=r=). The result of =mclapply= is a list, =hor=,
-## of =RasterLayer= which can be converted into a =RasterStack= with
-## =stack=. Each layer of this =RasterStack= corresponds to a different
-## direction.
+## direction. The result of each =apply= step is a matrix which is
+## used to fill in a RasterLayer (=r=). The result of =mclapply= is a
+## list, =hor=, of =RasterLayer= which can be converted into a
+## =RasterStack= with =stack=. Each layer of this =RasterStack=
+## corresponds to a different direction.
+
+## Maximum distance
+d <- 20000
+
+## The DEM used for the horizon computation must be smaller according
+## to this distance
+extHorizon <- extent(elevRioja) + c(d, -d, d, -d)
+elev <- crop(elevRioja, extHorizon)
 
 ## Sample distance defined by DEM resolution
 resD <- max(res(elev))
-
-## Maximum sample distance
-d <- 20000
+## Separations
 seps <- seq(resD, d, by=resD)
 
 ## Raster definition with UTMX, UTMY coordinates and elevation
@@ -274,14 +276,18 @@ xyelev <- stack(init(elev, v='x'),
                 init(elev, v='y'),
                 elev)
 names(xyelev) <- c('x', 'y', 'elev')
-
+## Coordinates
+locs <- as.matrix(xyelev)
+px <- locs[, 1]
+py <- locs[, 2]
+pz <- locs[, 3]
 
 ## Angle of sector sampling 5º.
 inc <- pi/36
 alfa <- seq(-0.5*pi,(1.5*pi-inc), inc)
 
 ## Calculation with parallel computing using mclapply and 8 nodes.
-locs <- as.matrix(xyelev)
+
 
 hor <- mclapply(alfa, function(ang){
   h <- apply(locs, 1, function(p){
