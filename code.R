@@ -99,18 +99,13 @@ latlon <- stack(init(SISa2005, v='y'),
                 init(SISa2005, v='x'))
 names(latlon) <- c('lat', 'lon')
 
-## Overlay permits using several layers from a RasterStack or
-## RasterBrick. The calculation of sun geometry is performed with
-## the resolution of CM SAF.
+## Sun angles are calculated with 5 min samples
+BTi <- seq(as.POSIXct('2005-01-01 00:00:00'),
+           as.POSIXct('2005-12-31 23:55:00'), by='5 min')
 
 ############################################################
 ## Extraterrestial solar irradiation
 ############################################################
-
-## The extraterrestrial irradiation is calculated with 5 min
-## samples
-BTi <- seq(as.POSIXct('2005-01-01 00:00:00'),
-           as.POSIXct('2005-12-31 23:55:00'), by='5 min')
 
 B05min <- overlay(latlon, fun=function(lat, lon){
   ## every point is a column of a data.frame...
@@ -140,9 +135,6 @@ projectRaster(B0h,crs=projUTM)
 ## Sun height
 ############################################################
 
-BTi <- seq(as.POSIXct('2005-01-01 00:00:00'),
-           as.POSIXct('2005-12-31 23:45:00'), by='15 min')
-
 AlS <- overlay(latlon, fun=function(lat, lon){
   locs <- as.data.frame(rbind(lat, lon))
   foo <- lapply(locs, function(p){
@@ -162,9 +154,6 @@ AlSh <- zApply(AlSn, by=hour, fun=mean)
 ############################################################
 ## Azimuth
 ############################################################
-
-BTi <- seq(as.POSIXct('2005-01-01 00:00:00'),
-           as.POSIXct('2005-12-31 23:45:00'), by='15 min')
 
 AzS <- overlay(latlon, fun=function(lat, lon){
   locs <- as.data.frame(rbind(lat, lon))
