@@ -72,6 +72,12 @@ stackSID <- projectRaster(stackSID, crs=projUTM)
 elevRioja <- raster('data/elev')
 names(elevRioja) <- 'elev'
 
+## Maximum sample distance between the origin location and the point of the DEM (see "Horizon angle" for details)
+d <- 20000
+## The DEM used for the horizon computation must be smaller according to this distance
+extHorizon <- extent(elevRioja) + c(d, -d, d, -d)
+elev <- crop(elevRioja, extHorizon)
+
 ##################################################################
 ## Sun geometry
 ##################################################################
@@ -90,6 +96,9 @@ latlon <- stack(init(SISa2005, v='y'),
                 init(SISa2005, v='x'))
 names(latlon) <- c('lat', 'lon')
 
+## The SISa2005 can now be projected to UTM
+SISa2005 <- projectRaster(SISa2005, crs=projUTM)
+
 ## Sun angles are calculated with 5 min samples
 BTi <- seq(as.POSIXct('2005-01-01 00:00:00'),
            as.POSIXct('2005-12-31 23:55:00'), by='5 min')
@@ -98,6 +107,7 @@ BTi <- seq(as.POSIXct('2005-01-01 00:00:00'),
 hour <- function(tt)as.POSIXct(trunc(tt + 30*60, 'hours'))
 ## Thus, this is the hourly time index
 BTh <- unique(hour(BTi))
+
 ############################################################
 ## Extraterrestial solar irradiation
 ############################################################
@@ -214,15 +224,15 @@ endCluster()
 ## with the anisotropy index, computed as the ratio between beam
 ## and extraterrestial irradiation.
 
-## Scale factor
-sf <- res(stackSID)/res(elev)
+## Scale factor  (both rasters use UTM projection)
+sf <- res(SISa2005)/res(elev)
 
 ## extraterrestrial irradiation and sun angles
 Bo0hd <- disaggregate(Bo0h, sf)
 Bo0hdr <- resample(Bo0hd, elev)
 
 AzShd <- disaggregate(AzSh, sf)
-AzShdr <- resample(AzShdr, elev)
+AzShdr <- resample(AzShd, elev)
 
 AlShd <- disaggregate(AlSh, sf)
 AlShdr <- resample(AlShd, elev)
@@ -262,13 +272,6 @@ Difani <- k1 * Difdr
 ## =RasterStack= with =stack=. Each layer of this =RasterStack=
 ## corresponds to a different direction.
 
-## Maximum distance
-d <- 20000
-
-## The DEM used for the horizon computation must be smaller according
-## to this distance
-extHorizon <- extent(elevRioja) + c(d, -d, d, -d)
-elev <- crop(elevRioja, extHorizon)
 
 ## Sample distance defined by DEM resolution
 resD <- max(res(elev))
@@ -316,6 +319,7 @@ hor <- mclapply(alfa, function(ang)
 ## Create a RasterStack with a layer for each angle
 horizon <- stack(hor)
 writeRaster(horizon, 'horizon')
+
 
 ##################################################################
 ## Horizon Blocking
