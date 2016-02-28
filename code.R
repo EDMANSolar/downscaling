@@ -93,11 +93,10 @@ names(elev) <- 'elev'
 ## function to extract (*and center*) hour for aggregation
 hour <- function(tt)as.POSIXct(trunc(tt + 30*60, 'hours'))
 
-## work with the resolution of CM SAF
-r <- SISa2005
-
-## Definition of a coordinate raster.
-latlon <- stack(init(r, v='y'), init(r, v='x'))
+## The calculation of sun geometry is performed with the resolution of
+## CM SAF.
+latlon <- stack(init(SISa2005, v='y'),
+                init(SISa2005, v='x'))
 names(latlon) <- c('lat', 'lon')
 
 ## Overlay permits using several layers from a RasterStack or
