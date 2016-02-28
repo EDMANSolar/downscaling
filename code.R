@@ -284,25 +284,34 @@ pz <- locs[, 3]
 
 ## Angle of sector sampling 5º.
 inc <- pi/36
-alfa <- seq(-0.5*pi,(1.5*pi-inc), inc)
+alfa <- seq(-pi, pi - inc, inc)
 
-## Calculation with parallel computing using mclapply and 8 nodes.
-
-
-hor <- mclapply(alfa, function(ang){
-  h <- apply(locs, 1, function(p){
-    x1 <- p[1]+cos(ang)*seps
-    y1 <- p[2]+sin(ang)*seps
-    p1 <- cbind(x1,y1)
-    z1 <- elevSpain[cellFromXY(elevSpain,p1)]
-    hor <- r2d(atan2(z1-p[3], seps))
-    maxHor <- max(hor[which.max(hor)], 0)
-  })
-  r <- raster(elev)
-  r[] <- matrix(h, nrow=nrow(r), byrow=TRUE)
-  r}, mc.cores=8)
-
+## Compute the horizon angle for each direction (alfa) with parallel
+## computing using mclapply.
+hor <- mclapply(alfa, function(ang)
+{
+    cat('Angle: ', ang, '\n')
+    ## Loop across separations
+    hor <- sapply(seps, function(sep)
+    {
+        x1 <- px - sin(ang) * sep
+        y1 <- py - cos(ang) * sep
+        p1 <- cbind(x1,y1)
+        z1 <- elevRioja[cellFromXY(elevRioja, p1)]
+        r2d(atan2(z1 - pz, sep))
+    })
+    ## The result is a matrix of angles with a row for each point of
+    ## the DEM (row of locs) and with a column for each separation.
+    r <- raster(elev)
+    ## The horizon angle at each location is the maximum angle, that
+    ## must be positive: "apply" computes the maximum value per row. 
+    r[] <- apply(hor, 1, max, 0)
+    r
+}, mc.cores=8)
+## The result is a list of RasterLayer, one per each direction angle.
+## Create a RasterStack with a layer for each angle
 horizon <- stack(hor)
+writeRaster(horizon, 'horizon')
 
 ## Horizon Blocking
 
