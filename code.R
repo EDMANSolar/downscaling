@@ -28,34 +28,42 @@ library(parallel)
 ## in which the repository has been cloned.
 setwd('MY_FOLDER')
 
-## Data
+##################################################################
+## Radiation Data
+##################################################################
 
-## Satellite data can be freely downloaded from CM SAF (www.cmsaf.eu), 
-## previous registration and log-in, choosing hourly
-## climate data sets named /SIS/ (Global Horizontal Irradiation)) and
-## /SID/ (Beam Horizontal Irradiation) for 2005. Both rasters are
-## projected to the UTM projection for compatibility with the Digital
-## Elevation Model. Due to the size of these files, they have not been
-## uploaded it into this github repository.
+## Satellite data can be freely downloaded from CM SAF (www.cmsaf.eu),
+## previous registration and log-in, choosing hourly climate data sets
+## named /SIS/ (Global Horizontal Irradiation)) and /SID/ (Beam
+## Horizontal Irradiation) for 2005. Due to the size of these files,
+## they have not been uploaded it into this github repository.
+## Instead, the resulting SISa2005 raster is uploaded in the github
+## repository. 
+SISa2005 <- raster('data/SISa2005')
+## Beware that the projection of SISa2005 is long-lat. This projection is needed to compute the sun geometry. After that step, this raster will be projected to the UTM projection.
 
-projUTM  <-  CRS('+proj=utm +zone=30')
-projLonLat <- CRS(' +proj=longlat +ellps=WGS84')
-
+## DO NOT RUN unless you have downloaded the hourly CMSAF files
 ## Once downloaded the irradiation files, they are collated into a single RasterStack.
+## GHI
 listFich <- dir(pattern='SIShm2005')
 stackSIS <- stack(listFich)
-stackSIS <- projectRaster(stackSIS,crs=projUTM)
-
-## Annual GHI
-SISa2005 <- calc(stackSIS,sum,na.rm=TRUE)
-
-## SISa2005 is uploaded in the github repository.
-SISa2005 <- raster('data/SISa2005')
-
 ## BHI
 listFich <- dir(pattern='SIDhm2005')
 stackSID <- stack(listFich)
+
+## Annual GHI: it is computed *before* the UTM projection
+SISa2005 <- calc(stackSIS,sum,na.rm=TRUE)
+
+## Both rasters are projected to the UTM projection for compatibility with the Digital Elevation Model. 
+projUTM  <-  CRS('+proj=utm +zone=30')
+
+stackSIS <- projectRaster(stackSIS, crs=projUTM)
 stackSID <- projectRaster(stackSID, crs=projUTM)
+## END of DO NOT RUN
+
+##################################################################
+## Digital Elevation Model
+##################################################################
 
 ## The DEM provided in elevG can be crop to the region analyzed (La
 ## Rioja). This DEM is obtained from www.ign.es MDT-200 file.
