@@ -90,8 +90,8 @@ names(elev) <- 'elev'
 ## multilayer =Raster= objects with the sun geometry needed for the
 ## next steps. 
 
-## function to extract hour for aggregation
-hour <- function(tt)as.POSIXct(trunc(tt, 'hours'))
+## function to extract (*and center*) hour for aggregation
+hour <- function(tt)as.POSIXct(trunc(tt + 30*60, 'hours'))
 
 ## work with the resolution of CM SAF
 r <- SISa2005
