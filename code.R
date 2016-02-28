@@ -147,21 +147,31 @@ endCluster()
 ## Sun height
 ############################################################
 
-AlS <- overlay(latlon, fun=function(lat, lon){
+AlS <- overlay(latlon, fun=function(lat, lon)
+{
   locs <- as.data.frame(rbind(lat, lon))
-  foo <- lapply(locs, function(p){
-    ## Calculation of the local hour with local2Solar.
-    hh <- local2Solar(BTi, p[2])
-    sol <- calcSol(p[1], BTi=hh)
-    ## Calculation of the sun height and rounding with 2
-    ## decimal positions to reduce the matrix size.
-    AlS <- round(r2d(as.data.frameI(sol)$AlS, 2))
-    AlS})
-  res <- do.call(rbind, foo)})
-AlSn <- setZ(AlS, BTi)
-names(AlSn) <- as.character(BTi)
+  b <- mclapply(locs, function(p)
+  {
+      cat('Point: ', p[2], ' ', p[1], '\n')
+      hh <- local2Solar(BTi, p[2])
+      sol <- calcSol(p[1], BTi=hh)
+      ## Calculation of the sun height and rounding with 2
+      ## decimal positions to reduce the matrix size.
+      round(r2d(as.data.frameI(sol)$AlS), 2)
+  }, mc.cores = detectCores())
+  res <- do.call(rbind, b)
+})
 
-AlSh <- zApply(AlSn, by=hour, fun=mean)
+AlS <- setZ(AlS, BTi)
+names(AlS) <- as.character(BTi)
+
+beginCluster(n = detectCores(), type = 'PSOCK')
+AlSh <- clusterR(AlS, zApply, args = list(by = hour))
+th <- unique(hour(getZ(AlS)))
+AlSh <- setZ(AlSh, th)
+AlSh <- projectRaster(AlSh, crs=projUTM,
+                      filename = 'AlSh', overwrite = TRUE)
+endCluster()
 
 ############################################################
 ## Azimuth
@@ -169,23 +179,32 @@ AlSh <- zApply(AlSn, by=hour, fun=mean)
 
 AzS <- overlay(latlon, fun=function(lat, lon){
   locs <- as.data.frame(rbind(lat, lon))
-  foo <- lapply(locs, function(p){
-    ## Calculation of the local hour with local2Solar.
-    hh <- local2Solar(BTi, p[2])
-    ## Calculation of the solar azimuth and rounding with 2 decimal
-    ## positions to reduce the matrix size.
-    sol <- calcSol(p[1], BTi=hh)
-    AzS <- round(r2d(as.data.frameI(sol)$AzS,2))
-    AzS})
-  res <- do.call(rbind, foo)})
-## Setting of the temporal index to AzS (15-min)
-AzSn <- setZ(AzS, BTi)
-names(AzSn) <- as.character(BTi)
+  b <- mclapply(locs, function(p)
+  {
+      cat('Point: ', p[2], ' ', p[1], '\n')
+      hh <- local2Solar(BTi, p[2])
+      ## Calculation of the solar azimuth and rounding with 2 decimal
+      ## positions to reduce the matrix size.
+      sol <- calcSol(p[1], BTi=hh)
+      round(r2d(as.data.frameI(sol)$AzS),2)
+  }, mc.cores = detectCores())
+  res <- do.call(rbind, b)
+})
 
+AzS <- setZ(AzS, BTi)
+names(AzS) <- as.character(BTi)
 
-AzSh <- zApply(AzSn, by=hour, fun=mean)
+beginCluster(n = detectCores(), type = 'PSOCK')
+AzSh <- clusterR(AzS, zApply, args = list(by = hour))
+th <- unique(hour(getZ(AzS)))
+AzSh <- setZ(AzSh, th)
+AzSh <- projectRaster(AzSh, crs=projUTM,
+                      filename = 'AzSh', overwrite = TRUE)
+endCluster()
 
+##################################################################
 ## Irradiation Components
+##################################################################
 
 ## The CMSAF rasters must be transformed to the higher resolution of
 ## the DEM (UTM 200mx200m). As a consequence of the different pixel
