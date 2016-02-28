@@ -334,15 +334,15 @@ writeRaster(horizon, 'horizon')
 
 ## Cut the Azimut raster in classes according to the alfa vector
 ## (directions). 
-idxAngle <- cut(AzShr, breaks=r2d(alfa))
+idxAngle <- cut(AzShdr, breaks=r2d(alfa))
 ## With idxAngle the values of the horizon Raster corresponding to
 ## each angle class can be extracted using stackSelect. 
 AngAlt <- stackSelect(horizon, idxAngle)
 ## The number of layers of AngAlt is the same as idxAngle and,
-## therefore, the same as AzShr. It can be used for comparison
+## therefore, the same as AzShdr. It can be used for comparison
 ## with with solar height, AlS. If AngAlt is greater, there is
 ## horizon blocking.
-dilogical <- ((AngAlt-AlShr)<0)
+dilogical <- (AngAlt - AlShdr) < 0
 
 ## Beam irradiation corrected with horizon blocking.
 Dirh <- SIDdr * dilogical
