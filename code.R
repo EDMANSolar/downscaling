@@ -16,8 +16,6 @@
 
 library(sp)
 library(raster)
-rasterOptions(todisk=FALSE)
-rasterOptions(chunksize = 1e+06, maxmemory = 1e+07)
 library(maptools)
 library(gstat)
 library(lattice)
