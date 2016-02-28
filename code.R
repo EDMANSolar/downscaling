@@ -110,7 +110,7 @@ BTi <- seq(as.POSIXct('2005-01-01 00:00:00'),
 ## The SIS coordinates (locs) are traversed with mclapply so for
 ## every point of the Raster object a time series of sun geometry is
 ## computed
-B05min <- overlay(latlon, fun=function(lat, lon)
+Bo05min <- overlay(latlon, fun=function(lat, lon)
 {
     locs <- as.data.frame(rbind(lat, lon))
     b <- mclapply(locs, function(p)
@@ -125,21 +125,21 @@ B05min <- overlay(latlon, fun=function(lat, lon)
     }, mc.cores = detectCores())
     res <- do.call(rbind, b)
 })
-## B05min is RasterBrick object with a layer for each element of
+## Bo05min is RasterBrick object with a layer for each element of
 ## the time index BTi. It can be set with setZ
-B05min <- setZ(B05min, BTi)
-names(B05min) <- as.character(BTi)
+Bo05min <- setZ(Bo05min, BTi)
+names(Bo05min) <- as.character(BTi)
 
 ## Both zApply and projectRaster accept parallel computing
 beginCluster(type = 'PSOCK')
 ## Hourly aggregation with zApply
-B0h <- clusterR(B05min, zApply, args = list(by = hour))
+Bo0h <- clusterR(Bo05min, zApply, args = list(by = hour))
 ## clusterR does not preserve the slot z set by zApply
-th <- unique(hour(getZ(B05min)))
-B0h <- setZ(B0h, th)
+th <- unique(hour(getZ(Bo05min)))
+Bo0h <- setZ(Bo0h, th)
 ## Project to UTM (same as DEM raster)
-B0h <- projectRaster(B0h, crs=projUTM,
-                     filename = 'B0h', overwrite = TRUE)
+Bo0h <- projectRaster(Bo0h, crs=projUTM,
+                     filename = 'Bo0h', overwrite = TRUE)
 ## We don't need the cluster anymore
 endCluster()
 
@@ -218,11 +218,11 @@ SISdr <- resample(SISd, elev)
 Difdr <- SISdr-SIDdr
 
 ## extraterrestrial irradiation
-B0hd <- disaggregate(B0h, sf)
-B0hdr <- resample(B0hd, elev)
+Bo0hd <- disaggregate(Bo0h, sf)
+Bo0hdr <- resample(Bo0hd, elev)
 
 ## anisotropy index
-k1 <- SIDdr/B0hdr
+k1 <- SIDdr/Bo0hdr
 
 Difiso <-(1-k1) * Difdr
 Difani <- k1 * Difdr
