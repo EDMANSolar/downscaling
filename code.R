@@ -107,29 +107,41 @@ BTi <- seq(as.POSIXct('2005-01-01 00:00:00'),
 ## Extraterrestial solar irradiation
 ############################################################
 
-B05min <- overlay(latlon, fun=function(lat, lon){
-  ## every point is a column of a data.frame...
-  locs <- as.data.frame(rbind(lat, lon))
-  ## These columns are traversed with lapply so for every point
-  ## of the Raster object a time series of sun geometry is
-  ## computed
-  b <- lapply(locs, function(p){
-    ## Mean solar Time
-    hh <- local2Solar(BTi, p[2])
-    ## Sun geometry
-    sol <- calcSol(p[1], BTi=hh)
-    ## Extraterrestial solar irradiation
-    Bo0 <- as.data.frameI(sol)$Bo0
-    Bo0 })
-  res <- do.call(rbind, b)})
+## The SIS coordinates (locs) are traversed with mclapply so for
+## every point of the Raster object a time series of sun geometry is
+## computed
+B05min <- overlay(latlon, fun=function(lat, lon)
+{
+    locs <- as.data.frame(rbind(lat, lon))
+    b <- mclapply(locs, function(p)
+    {
+        cat('Point: ', p[2], ' ', p[1], '\n')
+        ## Mean solar Time
+        hh <- local2Solar(BTi, p[2])
+        ## Sun geometry
+        sol <- calcSol(p[1], BTi=hh)
+        ## Extraterrestial solar irradiation
+        as.data.frameI(sol)$Bo0
+    }, mc.cores = detectCores())
+    res <- do.call(rbind, b)
+})
 ## B05min is RasterBrick object with a layer for each element of
 ## the time index BTi. It can be set with setZ
 B05min <- setZ(B05min, BTi)
 names(B05min) <- as.character(BTi)
-## Hourly aggregation with zApply
-B0h <- zApply(B05min, by=hour, fun=mean)
-projectRaster(B0h,crs=projUTM)
 
+## Both zApply and projectRaster accept parallel computing
+beginCluster(type = 'PSOCK')
+## Hourly aggregation with zApply
+B0h <- clusterR(B05min, zApply, args = list(by = hour))
+## clusterR does not preserve the slot z set by zApply
+th <- unique(hour(getZ(B05min)))
+B0h <- setZ(B0h, th)
+## Project to UTM (same as DEM raster)
+B0h <- projectRaster(B0h, crs=projUTM,
+                     filename = 'B0h', overwrite = TRUE)
+## We don't need the cluster anymore
+endCluster()
 
 ############################################################
 ## Sun height
