@@ -90,9 +90,6 @@ names(elev) <- 'elev'
 ## multilayer =Raster= objects with the sun geometry needed for the
 ## next steps. 
 
-## function to extract (*and center*) hour for aggregation
-hour <- function(tt)as.POSIXct(trunc(tt + 30*60, 'hours'))
-
 ## The calculation of sun geometry is performed with the resolution of
 ## CM SAF.
 latlon <- stack(init(SISa2005, v='y'),
@@ -102,7 +99,11 @@ names(latlon) <- c('lat', 'lon')
 ## Sun angles are calculated with 5 min samples
 BTi <- seq(as.POSIXct('2005-01-01 00:00:00'),
            as.POSIXct('2005-12-31 23:55:00'), by='5 min')
-
+## But are aggregated to hourly samples with this function, that
+## extract *and center* hour for aggregation
+hour <- function(tt)as.POSIXct(trunc(tt + 30*60, 'hours'))
+## Thus, this is the hourly time index
+BTh <- unique(hour(BTi))
 ############################################################
 ## Extraterrestial solar irradiation
 ############################################################
@@ -135,8 +136,7 @@ beginCluster(type = 'PSOCK')
 ## Hourly aggregation with zApply
 Bo0h <- clusterR(Bo05min, zApply, args = list(by = hour))
 ## clusterR does not preserve the slot z set by zApply
-th <- unique(hour(getZ(Bo05min)))
-Bo0h <- setZ(Bo0h, th)
+Bo0h <- setZ(Bo0h, BTh)
 ## Project to UTM (same as DEM raster)
 Bo0h <- projectRaster(Bo0h, crs=projUTM,
                      filename = 'Bo0h', overwrite = TRUE)
@@ -167,8 +167,7 @@ names(AlS) <- as.character(BTi)
 
 beginCluster(n = detectCores(), type = 'PSOCK')
 AlSh <- clusterR(AlS, zApply, args = list(by = hour))
-th <- unique(hour(getZ(AlS)))
-AlSh <- setZ(AlSh, th)
+AlSh <- setZ(AlSh, BTh)
 AlSh <- projectRaster(AlSh, crs=projUTM,
                       filename = 'AlSh', overwrite = TRUE)
 endCluster()
@@ -196,8 +195,7 @@ names(AzS) <- as.character(BTi)
 
 beginCluster(n = detectCores(), type = 'PSOCK')
 AzSh <- clusterR(AzS, zApply, args = list(by = hour))
-th <- unique(hour(getZ(AzS)))
-AzSh <- setZ(AzSh, th)
+AzSh <- setZ(AzSh, BTh)
 AzSh <- projectRaster(AzSh, crs=projUTM,
                       filename = 'AzSh', overwrite = TRUE)
 endCluster()
