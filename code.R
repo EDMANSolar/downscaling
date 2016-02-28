@@ -66,9 +66,9 @@ stackSID <- projectRaster(stackSID, crs=projUTM)
 ##################################################################
 
 ## The DEM provided in elevG can be crop to the region analyzed (La
-## Rioja). This DEM is obtained from www.ign.es MDT-200 file.
-## As stated above, this DEM uses the UTM projection. Due to the size 
-## of the DEM file (elevSpain) it has not been uploaded into this github 
+## Rioja). This DEM is obtained from www.ign.es MDT-200 file.  As
+## stated above, this DEM uses the UTM projection. Due to the size of
+## the DEM file (elevSpain) it has not been uploaded into this github
 ## repository and only the "elev" file is uploaded.
 
 elevSpain <- raster('elevSpain.grd')
@@ -78,17 +78,17 @@ elev <- crop(elevSpain, extent(479600, 616200, 4639600, 4728400))
 elev <- raster('data/elev')
 names(elev) <- 'elev'
 
+##################################################################
 ## Sun geometry
+##################################################################
 
 ## The first step is to compute the sun angles (height and azimuth)
 ## and the extraterrestial solar irradiation for every cell of the
-## CMSAF rasters. The functions =fSolD= and =fSolI= from the =solaR=
-## package= calculate respectively the daily and intradaily sun
-## geometry. These functions, combined with the =overlay= method from
-## the =raster= package, produce three multilayer =Raster= objects
-## with the sun geometry needed for the next steps. For the sake of
-## brevity we show only the procedure for the extraterrestial solar
-## irradiation.
+## CMSAF rasters. The function =calcSol= from the =solaR= package=
+## calculates the sun angles. Its results, combined with the
+## =overlay= method from the =raster= package, produce three
+## multilayer =Raster= objects with the sun geometry needed for the
+## next steps. 
 
 ## function to extract hour for aggregation
 hour <- function(tt)as.POSIXct(trunc(tt, 'hours'))
